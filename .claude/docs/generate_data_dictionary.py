@@ -79,6 +79,19 @@ TABLES = [
      "Known customer devices / sessions.",
      "Device tracking enables trusted-device skips, session listing and remote revocation, and feeds security audit.",
      "Per-device record: fingerprint, name, IP, geo, user-agent, trust flag, last-seen and revocation."),
+    # ---- wallet-service ------------------------------------------------
+    ("wallet", "wallets",
+     "Stores a customer's balance per currency.",
+     "Each customer can hold one wallet per currency; wallet-service owns balances so other services never touch money directly.",
+     "Balance (Decimal) with status and currency, keyed by user_id (plain reference to auth users.id). Unique per (user_id, currency)."),
+    ("wallet", "transactions",
+     "Append-only ledger of balance movements.",
+     "Every credit/debit must be auditable and idempotent; the ledger is the source of truth for balance history.",
+     "One row per balance movement: type (CREDIT/DEBIT), amount, balance_after, status, optional idempotency reference and linked transfer."),
+    ("wallet", "transfers",
+     "Records wallet-to-wallet transfers.",
+     "A transfer is a single logical operation spanning two ledger entries; it needs its own status and idempotency key.",
+     "From/to wallets, amount, currency, status (PENDING/COMPLETED/FAILED/REVERSED) and a unique reference; links the two transaction legs."),
 ]
 
 # Column-level dictionary per service:
@@ -217,6 +230,39 @@ COLUMNS = {
         ("user_devices", "last_seen_at", "timestamptz", "default now()", "Last activity time."),
         ("user_devices", "revoked_at", "timestamptz", "NULL", "Set on remote sign-out."),
         ("user_devices", "created_at", "timestamptz", "default now()", "First seen time."),
+    ],
+    "wallet": [
+        # wallets
+        ("wallets", "id", "uuid", "PK", "Primary key."),
+        ("wallets", "user_id", "uuid", "indexed", "Owner — plain reference to auth users.id (no cross-DB FK)."),
+        ("wallets", "currency", "varchar(3)", "NOT NULL", "ISO 4217 currency code."),
+        ("wallets", "balance", "decimal(20,4)", "default 0", "Current balance; updated atomically."),
+        ("wallets", "status", "enum", "default ACTIVE", "ACTIVE | FROZEN | CLOSED."),
+        ("wallets", "(user_id, currency)", "-", "UNIQUE", "One wallet per currency per user."),
+        ("wallets", "created_at", "timestamptz", "default now()", "Creation time."),
+        ("wallets", "updated_at", "timestamptz", "@updatedAt", "Last update time."),
+        # transactions
+        ("transactions", "id", "uuid", "PK", "Primary key."),
+        ("transactions", "wallet_id", "uuid", "FK wallets.id", "Wallet the entry belongs to."),
+        ("transactions", "type", "enum", "NOT NULL", "CREDIT | DEBIT."),
+        ("transactions", "amount", "decimal(20,4)", "NOT NULL", "Movement amount (positive)."),
+        ("transactions", "balance_after", "decimal(20,4)", "NOT NULL", "Wallet balance after this entry."),
+        ("transactions", "status", "enum", "default COMPLETED", "PENDING | COMPLETED | FAILED."),
+        ("transactions", "reference", "varchar", "UNIQUE, NULL", "Idempotency key (optional)."),
+        ("transactions", "description", "varchar", "NULL", "Free-text note."),
+        ("transactions", "transfer_id", "uuid", "FK transfers.id, NULL", "Set when the entry is a transfer leg."),
+        ("transactions", "created_at", "timestamptz", "default now()", "Entry time."),
+        # transfers
+        ("transfers", "id", "uuid", "PK", "Primary key."),
+        ("transfers", "from_wallet_id", "uuid", "FK wallets.id", "Source wallet."),
+        ("transfers", "to_wallet_id", "uuid", "FK wallets.id", "Destination wallet."),
+        ("transfers", "amount", "decimal(20,4)", "NOT NULL", "Transfer amount."),
+        ("transfers", "currency", "varchar(3)", "NOT NULL", "Currency (must match both wallets)."),
+        ("transfers", "status", "enum", "default COMPLETED", "PENDING | COMPLETED | FAILED | REVERSED."),
+        ("transfers", "reference", "varchar", "UNIQUE, NULL", "Idempotency key (optional)."),
+        ("transfers", "description", "varchar", "NULL", "Free-text note."),
+        ("transfers", "created_at", "timestamptz", "default now()", "Creation time."),
+        ("transfers", "completed_at", "timestamptz", "NULL", "Set when the transfer completes."),
     ],
 }
 
