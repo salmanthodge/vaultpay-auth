@@ -1,0 +1,9 @@
+export { registerController } from './auth.register.controller.js';
+export { loginController } from './auth.login.controller.js';
+export { refreshController } from './auth.refresh.controller.js';
+export { logoutController } from './auth.logout.controller.js';
+export { meController } from './auth.me.controller.js';
+export { verifyEmailController } from './auth.verifyEmail.controller.js';
+export { forgotPasswordController } from './auth.forgotPassword.controller.js';
+export { resetPasswordController } from './auth.resetPassword.controller.js';
+export { changePasswordController } from './auth.changePassword.controller.js';

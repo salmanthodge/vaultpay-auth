@@ -1,0 +1,57 @@
+# vaultpay-auth — self-contained local stack (free & local).
+# Each service owns its own Postgres DB; Redis is shared-style infra but scoped here.
+services:
+  auth-db:
+    image: postgres:16-alpine
+    container_name: vaultpay-auth-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vaultpay
+      POSTGRES_PASSWORD: vaultpay
+      POSTGRES_DB: vaultpay_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaultpay -d vaultpay_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-redis:
+    image: redis:7-alpine
+    container_name: vaultpay-auth-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - auth_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build: .
+    container_name: vaultpay-auth-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://vaultpay:vaultpay@auth-db:5432/vaultpay_auth?schema=public
+      REDIS_URL: redis://auth-redis:6379
+    ports:
+      - "4001:4001"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      auth-redis:
+        condition: service_healthy
+    # migrations applied as an explicit step before boot (rules/10)
+    command: sh -c "npx prisma migrate deploy && node src/server.js"
+
+volumes:
+  auth_db_data:
+  auth_redis_data:
