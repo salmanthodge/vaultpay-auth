@@ -6,9 +6,24 @@ import {
   validate,
   encryption,
 } from '../../../shared/middleware/index.js';
-import { serviceTokenConstant, serviceIntrospectConstant } from '../constants/index.js';
-import { serviceTokenValidator, serviceIntrospectValidator } from '../validators/index.js';
-import { serviceTokenController, serviceIntrospectController } from '../controllers/index.js';
+import {
+  serviceTokenConstant,
+  serviceIntrospectConstant,
+  serviceUserGetConstant,
+  serviceUserStatusConstant,
+} from '../constants/index.js';
+import {
+  serviceTokenValidator,
+  serviceIntrospectValidator,
+  serviceUserGetValidator,
+  serviceUserStatusValidator,
+} from '../validators/index.js';
+import {
+  serviceTokenController,
+  serviceIntrospectController,
+  serviceUserGetController,
+  serviceUserStatusController,
+} from '../controllers/index.js';
 
 const router = Router();
 
@@ -31,6 +46,26 @@ router.post(
   encryption,
   validate(serviceIntrospectValidator),
   serviceIntrospectController,
+);
+
+// ---- S2S-authenticated: customer lookups/actions (used by admin-service) ----
+router.get(
+  serviceUserGetConstant.ROUTE,
+  ipTracker,
+  rateLimiter(serviceUserGetConstant.RATE_LIMIT),
+  serviceAuth,
+  validate(serviceUserGetValidator),
+  serviceUserGetController,
+);
+
+router.patch(
+  serviceUserStatusConstant.ROUTE,
+  ipTracker,
+  rateLimiter(serviceUserStatusConstant.RATE_LIMIT),
+  serviceAuth,
+  encryption,
+  validate(serviceUserStatusValidator),
+  serviceUserStatusController,
 );
 
 export { router as serviceRoutes };

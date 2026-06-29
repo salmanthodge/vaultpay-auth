@@ -72,6 +72,7 @@ async function main() {
     { clientId: 'gateway', name: 'API Gateway', scopes: ['user:read', 'token:introspect'] },
     { clientId: 'wallet-service', name: 'Wallet Service', scopes: ['user:read'] },
     { clientId: 'vault-service', name: 'Vault Service', scopes: ['user:read'] },
+    { clientId: 'admin-service', name: 'Admin Service', scopes: ['user:read', 'user:write'] },
   ];
   const clientSecretHash = await bcrypt.hash(DEV_S2S_SECRET, 12);
   for (const client of SERVICE_CLIENTS) {
