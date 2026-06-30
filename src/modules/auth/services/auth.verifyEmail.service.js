@@ -1,4 +1,5 @@
 import { authRepository } from '../repositories/auth.repository.js';
+import { issueTokens } from './auth.token.service.js';
 import { sha256 } from '../../../shared/utils/hash.js';
 import { isExpired } from '../../../shared/utils/date.js';
 import { AppError } from '../../../shared/errors/index.js';
@@ -39,5 +40,9 @@ export const verifyEmailService = async ({ token }, context = {}) => {
     userAgent: context.userAgent ?? null,
   });
 
-  return { user };
+  // Auto-login after verification: issue a session so the SPA can go straight to the
+  // dashboard instead of asking the user to sign in again.
+  const tokens = await issueTokens(user, { ip: context.ip, userAgent: context.userAgent });
+
+  return { user, ...tokens };
 };
