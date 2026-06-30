@@ -59,6 +59,9 @@ const schema = z.object({
   // mfa
   MFA_ISSUER: z.string().default('VaultPay'),
 
+  // frontend web app base URL (used to build email links: verify, reset)
+  WEB_APP_URL: z.string().url().default('http://localhost:5173'),
+
   // oauth (optional until configured)
   OAUTH_REDIRECT_BASE_URL: z.string().url(),
   OAUTH_GOOGLE_CLIENT_ID: z.string().default(''),
