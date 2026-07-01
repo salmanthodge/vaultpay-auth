@@ -1,5 +1,6 @@
 // Barrel for shared/middleware (only the middleware the first module needs;
 // serviceAuth and event middleware are added when their modules are built).
+export { requestLogger } from './requestLogger.js';
 export { ipTracker } from './ipTracker.js';
 export { rateLimiter } from './rateLimiter.js';
 export { auth } from './auth.js';

@@ -3,6 +3,7 @@ import { httpStatus } from '../constants/httpStatus.js';
 import { errorCodes } from '../constants/errorCodes.js';
 import { messages } from '../constants/messages.js';
 import { logger } from '../config/logger.js';
+import { getContextLogger, getRequestId } from '../config/requestContext.js';
 import { isProduction } from '../config/env.js';
 
 /**
@@ -17,13 +18,18 @@ export const errorHandler = (err, req, res, _next) => {
   const code = isApp ? err.code : errorCodes.INTERNAL_ERROR;
   const message = isApp ? err.message : messages[errorCodes.INTERNAL_ERROR];
 
+  // Log every thrown error at the boundary, correlated to the request (rules/03).
+  // Business throws (typed AppErrors) land here; DB throws are also logged at the
+  // db layer. 5xx -> error, 4xx -> warn.
+  const log = getContextLogger(logger);
+  const requestId = getRequestId();
   if (statusCode >= 500) {
-    logger.error(
-      { err: err.message, stack: err.stack, code, path: req.originalUrl },
-      'request failed',
+    log.error(
+      { err: err.message, stack: err.stack, code, statusCode, path: req.originalUrl, requestId },
+      'error thrown (server)',
     );
   } else {
-    logger.warn({ code, message, path: req.originalUrl }, 'request error');
+    log.warn({ code, message, statusCode, path: req.originalUrl, requestId }, 'error thrown (client)');
   }
 
   const error = { code, message };

@@ -13,3 +13,4 @@ export {
 export { nowSeconds, addSeconds, addMinutes, addHours, addDays, isExpired } from './date.js';
 export { getPagination, buildPageMeta } from './pagination.js';
 export { getExtension, sanitizeFilename } from './file.js';
+export { logStep, logStepFailure } from './logStep.js';

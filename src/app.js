@@ -8,7 +8,7 @@ import { env } from './shared/config/env.js';
 import { pingDatabase } from './shared/config/database.js';
 import { redis } from './shared/config/redis.js';
 import { swaggerServe, swaggerSetup, buildOpenApiSpec } from './shared/config/swagger.js';
-import { response, notFound, errorHandler } from './shared/middleware/index.js';
+import { requestLogger, response, notFound, errorHandler } from './shared/middleware/index.js';
 import { asyncHandler } from './shared/utils/asyncHandler.js';
 import { modules } from './modules/index.js';
 
@@ -34,6 +34,11 @@ export const buildApp = () => {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(cookieParser());
+
+  // per-request logging + correlation id + AsyncLocalStorage context (rules/03).
+  // Placed after body parsing so the request payload can be logged (secrets redacted),
+  // before modules so every route + its db calls + steps log under one requestId.
+  app.use(requestLogger);
 
   // standard response envelope helpers (res.success/created/noContent)
   app.use(response);
